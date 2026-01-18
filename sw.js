@@ -1,10 +1,10 @@
-const CACHE_NAME = 'bom-helper-v1';
+const CACHE_NAME = 'scripture-helper-v8';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
-  './bom.txt'
+  './standard_works.txt'
 ];
 
 self.addEventListener('install', (e) => {
