@@ -27,7 +27,7 @@ let allVerses = [];
 let uniqueWords = [];
 let chapterList = [];
 let activeCategories = new Set(BOOKS_CONFIG.map(b => b.id)); 
-let legalTextContent = "Standard Works Data. All scripture is sourced from https://scriptures.nephi.org/. If you have any concerns about the apps operation or want to request features please email designflo.customerservice@gmail.com";
+let legalTextContent = "Standard Works Data. All scripture is sourced from https://scriptures.nephi.org/. If you have any concerns about the app's operation or want to request a features please email designflo.customerservice@gmail.com.";
 
 let currentSearchResults = [];
 let renderedCount = 0;
