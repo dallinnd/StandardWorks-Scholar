@@ -14,7 +14,8 @@ const BOOKS_CONFIG = [
     },
     { 
         id: 'dc', name: 'D&C', file: 'standard_works.txt',
-        books: new Set(["Section", "D&C"])
+        // UPDATED: Added "Doctrine and Covenants" to the list
+        books: new Set(["Doctrine and Covenants", "Section", "D&C"])
     },
     { 
         id: 'pgp', name: 'Pearl of GP', file: 'standard_works.txt',
@@ -28,6 +29,11 @@ let uniqueWords = [];
 let chapterList = [];
 let activeCategories = new Set(BOOKS_CONFIG.map(b => b.id)); 
 let legalTextContent = "Standard Works Data.";
+
+// Search State
+let currentSearchResults = []; // Stores the full list of matches
+let renderedCount = 0;         // Tracks how many are currently shown on screen
+const BATCH_SIZE = 50;         // How many to load at a time
 
 // DOM Elements
 const input = document.getElementById('search-input');
@@ -93,7 +99,7 @@ async function loadAllBooks() {
     let tempChapters = new Set();
     const loadedFiles = {}; 
 
-    // 1. Fetch file (Deduped)
+    // Fetch file (Deduped)
     const uniqueFiles = [...new Set(BOOKS_CONFIG.map(b => b.file))];
     await Promise.all(uniqueFiles.map(async (filename) => {
         try {
@@ -102,7 +108,7 @@ async function loadAllBooks() {
         } catch (e) { console.warn(`Failed to load ${filename}`, e); }
     }));
 
-    // 2. Parse against config
+    // Parse against config
     BOOKS_CONFIG.forEach(config => {
         const text = loadedFiles[config.file];
         if (text) parseBookText(text, config, tempWords, tempChapters);
@@ -137,7 +143,7 @@ function parseBookText(fullText, config, wordSet, chapterSet) {
                         break;
                     }
                 }
-            } else { shouldInclude = true; } // Fallback
+            } else { shouldInclude = true; } 
 
             if (shouldInclude) {
                 const lastColonIndex = reference.lastIndexOf(':');
@@ -176,13 +182,34 @@ function performSearch(query) {
     if (!query) return;
     resultsArea.innerHTML = '';
     const q = query.toLowerCase();
-    const results = allVerses.filter(v => activeCategories.has(v.source) && v.text.toLowerCase().includes(q)).slice(0, 50);
+    
+    // 1. Filter ALL matches
+    currentSearchResults = allVerses.filter(v => activeCategories.has(v.source) && v.text.toLowerCase().includes(q));
 
-    if (results.length === 0) { resultsArea.innerHTML = '<div class="placeholder-msg">No matches found.</div>'; return; }
+    if (currentSearchResults.length === 0) { 
+        resultsArea.innerHTML = '<div class="placeholder-msg">No matches found.</div>'; 
+        return; 
+    }
 
-    results.forEach(verse => {
+    // 2. Render first batch
+    renderedCount = 0;
+    renderNextBatch(q);
+}
+
+function renderNextBatch(highlightQuery) {
+    // Determine range
+    const start = renderedCount;
+    const end = Math.min(renderedCount + BATCH_SIZE, currentSearchResults.length);
+    const batch = currentSearchResults.slice(start, end);
+
+    // Remove existing "Load More" button if it exists
+    const existingBtn = document.getElementById('load-more-btn');
+    if (existingBtn) existingBtn.remove();
+
+    // Render Items
+    batch.forEach(verse => {
         const box = document.createElement('div'); box.className = 'verse-box';
-        const snippet = verse.text.replace(new RegExp(`(${q})`, 'gi'), '<b style="color:var(--primary);">$1</b>');
+        const snippet = verse.text.replace(new RegExp(`(${highlightQuery})`, 'gi'), '<b style="color:var(--primary);">$1</b>');
         const sourceBadge = BOOKS_CONFIG.find(b => b.id === verse.source).name;
 
         box.innerHTML = `
@@ -194,10 +221,20 @@ function performSearch(query) {
         box.onclick = () => openPopup(verse);
         resultsArea.appendChild(box);
     });
-    if (results.length === 50) {
-        const hint = document.createElement('div'); hint.innerText = "Results limited to 50 verses.";
-        hint.style.cssText = "text-align:center; padding:10px; color:var(--text-light);";
-        resultsArea.appendChild(hint);
+
+    renderedCount = end;
+
+    // Add "Load More" Button if there are more results
+    if (renderedCount < currentSearchResults.length) {
+        const loadMoreBtn = document.createElement('button');
+        loadMoreBtn.id = 'load-more-btn';
+        loadMoreBtn.innerText = `Load More (${currentSearchResults.length - renderedCount} remaining)`;
+        
+        // Styling the button in JS to avoid CSS file edits
+        loadMoreBtn.style.cssText = "width:100%; padding:15px; margin-top:10px; background:var(--bg); border:1px solid var(--border); border-radius:12px; color:var(--primary); font-weight:600; cursor:pointer;";
+        
+        loadMoreBtn.onclick = () => renderNextBatch(highlightQuery);
+        resultsArea.appendChild(loadMoreBtn);
     }
 }
 
