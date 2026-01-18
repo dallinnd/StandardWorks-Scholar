@@ -33,20 +33,17 @@ let currentSearchResults = [];
 let renderedCount = 0;
 const BATCH_SIZE = 50;
 
-// Settings State
-const FONT_SIZES = [14, 16, 18, 22, 26]; // px
-const FONT_LABELS = ["Small", "Medium", "Large", "X-Large", "Huge"];
-let currentSizeIndex = 1; // Default 16px (Medium)
-
 // DOM Elements
 const input = document.getElementById('search-input');
 const sendBtn = document.getElementById('send-btn');
 const suggestionsArea = document.getElementById('suggestions-area');
 const resultsArea = document.getElementById('results-area');
+
+// Modal Elements
 const modalOverlay = document.getElementById('modal-overlay');
 const modalText = document.getElementById('modal-text');
 const modalRef = document.querySelector('.modal-ref');
-const closeBtn = document.querySelector('.close-btn');
+const mainCloseBtn = document.querySelector('.main-close');
 const legalLink = document.getElementById('legal-link');
 const filtersContainer = document.getElementById('category-filters');
 const modalFooter = document.querySelector('.modal-footer') || createModalFooter();
@@ -56,10 +53,7 @@ const nextBtn = document.getElementById('next-chapter-btn');
 // Settings Elements
 const settingsBtn = document.getElementById('settings-btn');
 const settingsOverlay = document.getElementById('settings-overlay');
-const closeSettingsBtn = document.querySelector('.close-settings-btn');
-const increaseTextBtn = document.getElementById('increase-text');
-const decreaseTextBtn = document.getElementById('decrease-text');
-const currentSizeLabel = document.getElementById('current-size-label');
+const settingsCloseBtn = document.querySelector('.settings-close');
 const themeBtns = document.querySelectorAll('.theme-btn');
 
 function createModalFooter() {
@@ -71,52 +65,23 @@ function createModalFooter() {
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
-    // Load Settings First
     loadSettings();
-    
     renderFilters();
     await loadAllBooks();
 });
 
 // --- SETTINGS LOGIC ---
 function loadSettings() {
-    // 1. Theme
     const savedTheme = localStorage.getItem('app_theme') || 'theme-light-blue';
     document.body.className = savedTheme;
-
-    // 2. Text Size
-    const savedSizeIdx = parseInt(localStorage.getItem('app_font_index') || 1);
-    currentSizeIndex = savedSizeIdx;
-    applyFontSize();
-}
-
-function applyFontSize() {
-    const newSize = FONT_SIZES[currentSizeIndex];
-    document.documentElement.style.setProperty('--font-size-base', newSize + 'px');
-    currentSizeLabel.innerText = FONT_LABELS[currentSizeIndex];
-    localStorage.setItem('app_font_index', currentSizeIndex);
 }
 
 // Settings Event Listeners
 settingsBtn.onclick = () => settingsOverlay.classList.remove('hidden');
-closeSettingsBtn.onclick = () => settingsOverlay.classList.add('hidden');
+settingsCloseBtn.onclick = () => settingsOverlay.classList.add('hidden');
 settingsOverlay.addEventListener('click', (e) => { 
     if (e.target === settingsOverlay) settingsOverlay.classList.add('hidden'); 
 });
-
-increaseTextBtn.onclick = () => {
-    if (currentSizeIndex < FONT_SIZES.length - 1) {
-        currentSizeIndex++;
-        applyFontSize();
-    }
-};
-
-decreaseTextBtn.onclick = () => {
-    if (currentSizeIndex > 0) {
-        currentSizeIndex--;
-        applyFontSize();
-    }
-};
 
 themeBtns.forEach(btn => {
     btn.onclick = () => {
@@ -331,15 +296,18 @@ function navigateChapter(d) {
 }
 prevBtn.onclick = () => navigateChapter(-1); nextBtn.onclick = () => navigateChapter(1);
 
+// CLOSE BUTTON LOGIC
+function closeMainPopup() { modalOverlay.classList.add('hidden'); }
+mainCloseBtn.onclick = closeMainPopup;
+modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeMainPopup(); });
+
+// SWIPE LOGIC (Fixed)
 let ts = 0;
-modalContent.addEventListener('touchstart', (e) => ts = e.changedTouches[0].screenX, {passive: true});
-modalContent.addEventListener('touchend', (e) => {
+modalText.addEventListener('touchstart', (e) => ts = e.changedTouches[0].screenX, {passive: true});
+modalText.addEventListener('touchend', (e) => {
     if (nextBtn.classList.contains('hidden')) return;
     const dist = ts - e.changedTouches[0].screenX;
     if (dist > 50) navigateChapter(1); else if (dist < -50) navigateChapter(-1);
 }, {passive: true});
 
 if(legalLink) legalLink.onclick = (e) => { e.preventDefault(); openPopup("Legal Disclosure", legalTextContent); };
-function closePopup() { modalOverlay.classList.add('hidden'); }
-closeBtn.onclick = closePopup;
-modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closePopup(); });
