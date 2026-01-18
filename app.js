@@ -14,7 +14,6 @@ const BOOKS_CONFIG = [
     },
     { 
         id: 'dc', name: 'D&C', file: 'standard_works.txt',
-        // UPDATED: Added "Doctrine and Covenants" to the list
         books: new Set(["Doctrine and Covenants", "Section", "D&C"])
     },
     { 
@@ -30,10 +29,14 @@ let chapterList = [];
 let activeCategories = new Set(BOOKS_CONFIG.map(b => b.id)); 
 let legalTextContent = "Standard Works Data.";
 
-// Search State
-let currentSearchResults = []; // Stores the full list of matches
-let renderedCount = 0;         // Tracks how many are currently shown on screen
-const BATCH_SIZE = 50;         // How many to load at a time
+let currentSearchResults = [];
+let renderedCount = 0;
+const BATCH_SIZE = 50;
+
+// Settings State
+const FONT_SIZES = [14, 16, 18, 22, 26]; // px
+const FONT_LABELS = ["Small", "Medium", "Large", "X-Large", "Huge"];
+let currentSizeIndex = 1; // Default 16px (Medium)
 
 // DOM Elements
 const input = document.getElementById('search-input');
@@ -41,7 +44,6 @@ const sendBtn = document.getElementById('send-btn');
 const suggestionsArea = document.getElementById('suggestions-area');
 const resultsArea = document.getElementById('results-area');
 const modalOverlay = document.getElementById('modal-overlay');
-const modalContent = document.querySelector('.modal-content');
 const modalText = document.getElementById('modal-text');
 const modalRef = document.querySelector('.modal-ref');
 const closeBtn = document.querySelector('.close-btn');
@@ -50,6 +52,15 @@ const filtersContainer = document.getElementById('category-filters');
 const modalFooter = document.querySelector('.modal-footer') || createModalFooter();
 const prevBtn = document.getElementById('prev-chapter-btn');
 const nextBtn = document.getElementById('next-chapter-btn');
+
+// Settings Elements
+const settingsBtn = document.getElementById('settings-btn');
+const settingsOverlay = document.getElementById('settings-overlay');
+const closeSettingsBtn = document.querySelector('.close-settings-btn');
+const increaseTextBtn = document.getElementById('increase-text');
+const decreaseTextBtn = document.getElementById('decrease-text');
+const currentSizeLabel = document.getElementById('current-size-label');
+const themeBtns = document.querySelectorAll('.theme-btn');
 
 function createModalFooter() {
     const f = document.createElement('div');
@@ -60,9 +71,62 @@ function createModalFooter() {
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
+    // Load Settings First
+    loadSettings();
+    
     renderFilters();
     await loadAllBooks();
 });
+
+// --- SETTINGS LOGIC ---
+function loadSettings() {
+    // 1. Theme
+    const savedTheme = localStorage.getItem('app_theme') || 'theme-light-blue';
+    document.body.className = savedTheme;
+
+    // 2. Text Size
+    const savedSizeIdx = parseInt(localStorage.getItem('app_font_index') || 1);
+    currentSizeIndex = savedSizeIdx;
+    applyFontSize();
+}
+
+function applyFontSize() {
+    const newSize = FONT_SIZES[currentSizeIndex];
+    document.documentElement.style.setProperty('--font-size-base', newSize + 'px');
+    currentSizeLabel.innerText = FONT_LABELS[currentSizeIndex];
+    localStorage.setItem('app_font_index', currentSizeIndex);
+}
+
+// Settings Event Listeners
+settingsBtn.onclick = () => settingsOverlay.classList.remove('hidden');
+closeSettingsBtn.onclick = () => settingsOverlay.classList.add('hidden');
+settingsOverlay.addEventListener('click', (e) => { 
+    if (e.target === settingsOverlay) settingsOverlay.classList.add('hidden'); 
+});
+
+increaseTextBtn.onclick = () => {
+    if (currentSizeIndex < FONT_SIZES.length - 1) {
+        currentSizeIndex++;
+        applyFontSize();
+    }
+};
+
+decreaseTextBtn.onclick = () => {
+    if (currentSizeIndex > 0) {
+        currentSizeIndex--;
+        applyFontSize();
+    }
+};
+
+themeBtns.forEach(btn => {
+    btn.onclick = () => {
+        const theme = btn.getAttribute('data-theme');
+        document.body.className = theme;
+        localStorage.setItem('app_theme', theme);
+    };
+});
+
+// --- REST OF APP LOGIC ---
 
 function renderFilters() {
     filtersContainer.innerHTML = '';
@@ -99,7 +163,6 @@ async function loadAllBooks() {
     let tempChapters = new Set();
     const loadedFiles = {}; 
 
-    // Fetch file (Deduped)
     const uniqueFiles = [...new Set(BOOKS_CONFIG.map(b => b.file))];
     await Promise.all(uniqueFiles.map(async (filename) => {
         try {
@@ -108,7 +171,6 @@ async function loadAllBooks() {
         } catch (e) { console.warn(`Failed to load ${filename}`, e); }
     }));
 
-    // Parse against config
     BOOKS_CONFIG.forEach(config => {
         const text = loadedFiles[config.file];
         if (text) parseBookText(text, config, tempWords, tempChapters);
@@ -134,7 +196,6 @@ function parseBookText(fullText, config, wordSet, chapterSet) {
             const reference = match[1].trim(); 
             const text = match[2].trim();
             
-            // Filter by Book Name
             let shouldInclude = false;
             if (config.books) {
                 for (const bookName of config.books) {
@@ -183,7 +244,6 @@ function performSearch(query) {
     resultsArea.innerHTML = '';
     const q = query.toLowerCase();
     
-    // 1. Filter ALL matches
     currentSearchResults = allVerses.filter(v => activeCategories.has(v.source) && v.text.toLowerCase().includes(q));
 
     if (currentSearchResults.length === 0) { 
@@ -191,22 +251,18 @@ function performSearch(query) {
         return; 
     }
 
-    // 2. Render first batch
     renderedCount = 0;
     renderNextBatch(q);
 }
 
 function renderNextBatch(highlightQuery) {
-    // Determine range
     const start = renderedCount;
     const end = Math.min(renderedCount + BATCH_SIZE, currentSearchResults.length);
     const batch = currentSearchResults.slice(start, end);
 
-    // Remove existing "Load More" button if it exists
     const existingBtn = document.getElementById('load-more-btn');
     if (existingBtn) existingBtn.remove();
 
-    // Render Items
     batch.forEach(verse => {
         const box = document.createElement('div'); box.className = 'verse-box';
         const snippet = verse.text.replace(new RegExp(`(${highlightQuery})`, 'gi'), '<b style="color:var(--primary);">$1</b>');
@@ -224,15 +280,11 @@ function renderNextBatch(highlightQuery) {
 
     renderedCount = end;
 
-    // Add "Load More" Button if there are more results
     if (renderedCount < currentSearchResults.length) {
         const loadMoreBtn = document.createElement('button');
         loadMoreBtn.id = 'load-more-btn';
         loadMoreBtn.innerText = `Load More (${currentSearchResults.length - renderedCount} remaining)`;
-        
-        // Styling the button in JS to avoid CSS file edits
         loadMoreBtn.style.cssText = "width:100%; padding:15px; margin-top:10px; background:var(--bg); border:1px solid var(--border); border-radius:12px; color:var(--primary); font-weight:600; cursor:pointer;";
-        
         loadMoreBtn.onclick = () => renderNextBatch(highlightQuery);
         resultsArea.appendChild(loadMoreBtn);
     }
