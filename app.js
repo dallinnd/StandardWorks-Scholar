@@ -133,9 +133,11 @@ function renderFilters() {
     });
 
     // Separator
-    const sep = document.createElement('div');
-    sep.style.cssText = "width: 1px; height: 20px; background: var(--border); margin: 0 5px;";
+        const sep = document.createElement('div');
+    // Change the width and height values
+    sep.style.cssText = "width: 50px; height: 1px; background: var(--border); margin: 5px 0;"; 
     filtersContainer.appendChild(sep);
+
 
     // 2. Render Search Type Toggles (Ref & Text)
     const createToggle = (label, isEnabled, toggleFn) => {
