@@ -10,7 +10,7 @@
 
 /* THEMES */
 body.theme-light-sepia {
-  --primary: #8b5cf6; 
+  --primary: #0d6e2a; 
   --bg: #fdf6e3; --surface: #eee8d5; --text: #433422;
   --text-light: #657b83; --border: #d3c6aa; --verse-hover: #e4dec9;
 }
