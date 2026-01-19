@@ -135,7 +135,7 @@ function renderFilters() {
     // Separator
         const sep = document.createElement('div');
     // Change the width and height values
-    sep.style.cssText = "width: 50px; height: 1px; background: var(--border); margin: 5px 0;"; 
+    sep.style.cssText = "width: 50px; height: 1px; background: var(--border); margin: 5px 5px;"; 
     filtersContainer.appendChild(sep);
 
 
