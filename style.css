@@ -81,6 +81,32 @@ footer { padding: 15px; text-align: center; border-top: 1px solid var(--border);
 .nav-arrow { background: var(--bg); border: 1px solid var(--border); width: 32px; height: 32px; border-radius: 50%; font-size: 1.2rem; color: var(--primary); display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .nav-arrow.hidden { display: none; }
 
+/* ... Previous Styles ... */
+
+/* Filters */
+.filters-container { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; align-items: center; }
+
+.filter-chip { 
+    background: var(--bg); border: 1px solid var(--border); padding: 6px 12px; 
+    border-radius: 15px; font-size: 0.85rem; color: var(--text-light); 
+    cursor: pointer; transition: 0.2s; 
+}
+
+/* Primary Active (Book Categories) - Filled Color */
+.filter-chip.active { 
+    background: var(--primary); color: var(--bg); border-color: var(--primary); 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+}
+
+/* Secondary Active (Search Types) - Outlined Color */
+.filter-chip.active-secondary { 
+    background: var(--surface); color: var(--primary); border: 1px solid var(--primary); 
+    box-shadow: 0 0 0 1px var(--primary); /* Simulates thicker border */
+    font-weight: 600;
+}
+
+/* ... Rest of Styles ... */
+
 /* Fixed Close Button Z-Index */
 .close-btn { 
     background: none; border: none; font-size: 2rem; cursor: pointer; color: var(--text-light); line-height: 1; 
